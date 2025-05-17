@@ -2,6 +2,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useApp } from "@/contexts/AppContext";
+import { WalletConnector } from "./WallenConnector";
 
 const Header = () => {
   const { currentUser } = useApp();
@@ -24,6 +25,9 @@ const Header = () => {
           </Link>
           <Link to="/my-events">
             <Button variant="ghost">My Events</Button>
+          </Link>
+          <Link to="/">
+            <WalletConnector />
           </Link>
         </nav>
       </div>
