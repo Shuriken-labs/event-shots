@@ -14,6 +14,8 @@ import {
   useStarknetkitConnectModal
 } from "starknetkit";
 
+import video_src from "/event_shot.mp4";
+
 const Index = () => {
   const { connect, connectors } = useConnect();
   const { starknetkitConnectModal } = useStarknetkitConnectModal({
@@ -38,7 +40,7 @@ const Index = () => {
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1 container py-8">
-        <section className="mb-12">
+        <section className="mb-12 md:h-full">
           <div className="text-center max-w-3xl mx-auto">
             <h1 className="text-4xl sm:text-5xl font-bold mb-4 gradient-text">
               Never Miss an Event Photo Again
@@ -75,6 +77,16 @@ const Index = () => {
             </div>
           </div>
         </section>
+        <div className="__video_container flex w-full justify-center items-center">
+          <video
+            className="md:h-[600px] rounded-3xl mb-5 self-center"
+            src={video_src}
+            autoPlay
+            muted
+            playsInline
+            loop
+          />
+        </div>
 
         <section className="mb-12 grid gap-8 grid-cols-1 md:grid-cols-3">
           <div className="bg-card p-6 rounded-lg shadow-md flex flex-col items-center text-center">
