@@ -1,4 +1,3 @@
-
 export interface Event {
   id: string;
   name: string;
@@ -15,7 +14,8 @@ export interface Photo {
   takenBy: string;
   imageUrl: string;
   timestamp: string;
-  tags: string[];
+  ipfsHash?: string;
+  tags?: string[];
 }
 
 export interface User {

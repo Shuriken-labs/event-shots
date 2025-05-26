@@ -5,9 +5,11 @@ import Camera from "@/components/FIlterCamera.tsx";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Camera as CameraIcon, Image } from "lucide-react";
+import { Camera as CameraIcon, Image, Loader2 } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { useToast } from "@/components/ui/use-toast";
+import { useImageUpload } from "@/hooks/useImageUpload";
+import { apiService } from "@/utils/api";
 import { Photo } from "@/types";
 
 const EventDetail = () => {
@@ -21,6 +23,8 @@ const EventDetail = () => {
     checkInToEvent
   } = useApp();
   const { toast } = useToast();
+  const { uploadImageFromBase64, uploading, error, clearError } =
+    useImageUpload();
   const [activeTab, setActiveTab] = useState("gallery");
   const [eventPhotos, setEventPhotos] = useState<Photo[]>([]);
 
@@ -33,6 +37,11 @@ const EventDetail = () => {
     }
   }, [eventId, getEventPhotos]);
 
+  // Clear error when component mounts or tab changes
+  useEffect(() => {
+    clearError();
+  }, [activeTab, clearError]);
+
   const handleCheckIn = () => {
     if (eventId) {
       checkInToEvent(eventId);
@@ -43,27 +52,63 @@ const EventDetail = () => {
     }
   };
 
-  const handlePhotoCapture = (imageData: string) => {
+  const handlePhotoCapture = async (imageData: string) => {
     if (!eventId || !currentUser) return;
 
-    const newPhoto: Photo = {
-      id: `photo-${Date.now()}`,
-      eventId,
-      takenBy: currentUser.id,
-      imageUrl: imageData,
-      timestamp: new Date().toISOString(),
-      tags: []
-    };
+    try {
+      // Clear any previous errors
+      clearError();
 
-    addPhoto(newPhoto);
-    setEventPhotos((prev) => [...prev, newPhoto]);
+      // Upload image to your API
+      const uploadResult = await uploadImageFromBase64(
+        imageData,
+        `event-${eventId}-${Date.now()}.jpg`
+      );
 
-    toast({
-      title: "Photo captured!",
-      description: "Your photo has been added to the event gallery."
-    });
+      if (uploadResult) {
+        // Get the IPFS URL for the uploaded image
+        const ipfsImageUrl = apiService.getImageUrl(
+          uploadResult.response.file_hash
+        );
 
-    setActiveTab("gallery");
+        // Create new photo object with IPFS URL
+        const newPhoto: Photo = {
+          id: `photo-${Date.now()}`,
+          eventId,
+          takenBy: currentUser.id,
+          imageUrl: ipfsImageUrl, // Use IPFS URL instead of base64
+          timestamp: new Date().toISOString(),
+          tags: [],
+          // Store IPFS hash for future reference
+          ipfsHash: uploadResult.response.file_hash
+        };
+
+        addPhoto(newPhoto);
+        setEventPhotos((prev) => [...prev, newPhoto]);
+
+        toast({
+          title: "Photo uploaded!",
+          description:
+            "Your photo has been uploaded to IPFS and added to the event gallery."
+        });
+
+        setActiveTab("gallery");
+      } else {
+        // Error handling is done by the hook, but we can show additional context
+        toast({
+          title: "Upload failed",
+          description: error || "Failed to upload photo. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } catch (err) {
+      console.error("Error in photo capture:", err);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while uploading your photo.",
+        variant: "destructive"
+      });
+    }
   };
 
   if (!event) {
@@ -98,6 +143,23 @@ const EventDetail = () => {
             {event.description && <p className="mt-4">{event.description}</p>}
           </div>
 
+          {/* Error display */}
+          {error && (
+            <Card className="mb-6 border-destructive">
+              <CardContent className="pt-6">
+                <p className="text-destructive text-sm">{error}</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearError}
+                  className="mt-2"
+                >
+                  Dismiss
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
           {!isCheckedIn && (
             <Card className="mb-8">
               <CardContent className="pt-6 text-center">
@@ -124,7 +186,14 @@ const EventDetail = () => {
                 </TabsTrigger>
                 <TabsTrigger value="camera" className="flex gap-2">
                   <CameraIcon className="w-4 h-4" />
-                  Take Photos
+                  {uploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    "Take Photos"
+                  )}
                 </TabsTrigger>
               </TabsList>
 
@@ -140,6 +209,16 @@ const EventDetail = () => {
                           src={photo.imageUrl}
                           alt="Event photo"
                           className="w-full h-full object-cover"
+                          loading="lazy"
+                          onError={(e) => {
+                            // Fallback if IPFS image fails to load
+                            console.error(
+                              "Failed to load image:",
+                              photo.imageUrl
+                            );
+                            (e.target as HTMLImageElement).style.display =
+                              "none";
+                          }}
                         />
                       </div>
                     ))}
@@ -154,6 +233,7 @@ const EventDetail = () => {
                     <Button
                       onClick={() => setActiveTab("camera")}
                       className="gap-2"
+                      disabled={uploading}
                     >
                       <CameraIcon className="w-4 h-4" />
                       Take a Photo
@@ -165,7 +245,18 @@ const EventDetail = () => {
               <TabsContent value="camera" className="mt-4">
                 <Card>
                   <CardContent className="pt-6">
-                    <Camera onPhotoCapture={handlePhotoCapture} />
+                    {uploading && (
+                      <div className="mb-4 p-4 bg-muted/50 rounded-md flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="text-sm">
+                          Uploading photo to IPFS...
+                        </span>
+                      </div>
+                    )}
+                    <Camera
+                      onPhotoCapture={handlePhotoCapture}
+                      disabled={uploading}
+                    />
                   </CardContent>
                 </Card>
               </TabsContent>
