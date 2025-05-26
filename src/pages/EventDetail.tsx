@@ -1,8 +1,7 @@
-
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import Header from "@/components/Header";
-import Camera from "@/components/Camera";
+import Camera from "@/components/FIlterCamera.tsx";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,12 +12,19 @@ import { Photo } from "@/types";
 
 const EventDetail = () => {
   const { eventId } = useParams();
-  const { events, currentUser, getEventPhotos, addPhoto, isUserCheckedIntoEvent, checkInToEvent } = useApp();
+  const {
+    events,
+    currentUser,
+    getEventPhotos,
+    addPhoto,
+    isUserCheckedIntoEvent,
+    checkInToEvent
+  } = useApp();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("gallery");
   const [eventPhotos, setEventPhotos] = useState<Photo[]>([]);
 
-  const event = events.find(e => e.id === eventId);
+  const event = events.find((e) => e.id === eventId);
   const isCheckedIn = eventId ? isUserCheckedIntoEvent(eventId) : false;
 
   useEffect(() => {
@@ -50,13 +56,13 @@ const EventDetail = () => {
     };
 
     addPhoto(newPhoto);
-    setEventPhotos(prev => [...prev, newPhoto]);
-    
+    setEventPhotos((prev) => [...prev, newPhoto]);
+
     toast({
       title: "Photo captured!",
       description: "Your photo has been added to the event gallery."
     });
-    
+
     setActiveTab("gallery");
   };
 
@@ -89,9 +95,7 @@ const EventDetail = () => {
               <span>•</span>
               <span>{event.location}</span>
             </div>
-            {event.description && (
-              <p className="mt-4">{event.description}</p>
-            )}
+            {event.description && <p className="mt-4">{event.description}</p>}
           </div>
 
           {!isCheckedIn && (
@@ -108,7 +112,11 @@ const EventDetail = () => {
           )}
 
           {isCheckedIn && (
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="mb-8"
+            >
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="gallery" className="flex gap-2">
                   <Image className="w-4 h-4" />
@@ -119,7 +127,7 @@ const EventDetail = () => {
                   Take Photos
                 </TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="gallery" className="mt-4">
                 {eventPhotos.length > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -143,14 +151,17 @@ const EventDetail = () => {
                     <p className="text-muted-foreground mb-6">
                       Be the first to capture a moment at this event!
                     </p>
-                    <Button onClick={() => setActiveTab('camera')} className="gap-2">
+                    <Button
+                      onClick={() => setActiveTab("camera")}
+                      className="gap-2"
+                    >
                       <CameraIcon className="w-4 h-4" />
                       Take a Photo
                     </Button>
                   </div>
                 )}
               </TabsContent>
-              
+
               <TabsContent value="camera" className="mt-4">
                 <Card>
                   <CardContent className="pt-6">

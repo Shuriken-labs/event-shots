@@ -1,10 +1,39 @@
-
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import { QrCode, Camera, Image } from "lucide-react";
+import {
+  Connector,
+  useAccount,
+  useConnect,
+  useDisconnect,
+  useProvider
+} from "@starknet-react/core";
+import {
+  type StarknetkitConnector,
+  useStarknetkitConnectModal
+} from "starknetkit";
 
 const Index = () => {
+  const { connect, connectors } = useConnect();
+  const { starknetkitConnectModal } = useStarknetkitConnectModal({
+    connectors: connectors as StarknetkitConnector[]
+  });
+
+  const { provider } = useProvider();
+  const { disconnect } = useDisconnect();
+  const { address, account } = useAccount();
+
+  const navigate = useNavigate();
+
+  async function connectWallet() {
+    const { connector } = await starknetkitConnectModal();
+    if (!connector) {
+      return;
+    }
+    await connect({ connector: connector as Connector });
+    return true;
+  }
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -15,14 +44,29 @@ const Index = () => {
               Never Miss an Event Photo Again
             </h1>
             <p className="text-xl text-muted-foreground mb-8">
-              Attend events, scan QR codes, capture memories, and find all the photos you're in
+              Attend events, scan QR codes, capture memories, and find all the
+              photos you're in
             </p>
             <div className="flex flex-wrap justify-center gap-4">
-              <Link to="/create-event">
-                <Button size="lg" className="gradient-bg">
-                  Create an Event
-                </Button>
-              </Link>
+              {/* <Link to="/create-event"> */}
+              <Button
+                size="lg"
+                className="gradient-bg"
+                onClick={async () => {
+                  if (address) {
+                    // const user_state = await fetchUserData();
+                    navigate("/create-event");
+                  } else {
+                    const someResult = await connectWallet();
+                    if (someResult) {
+                      navigate("/create-event");
+                    }
+                  }
+                }}
+              >
+                {address ? "Create an Event" : "Connect Wallet"}
+              </Button>
+              {/* </Link> */}
               <Link to="/join-event">
                 <Button size="lg" variant="outline">
                   Join Event with QR Code
@@ -49,7 +93,8 @@ const Index = () => {
             </div>
             <h2 className="text-xl font-semibold mb-2">Capture Moments</h2>
             <p className="text-muted-foreground">
-              Take photos within the app and they're automatically shared with the event
+              Take photos within the app and they're automatically shared with
+              the event
             </p>
           </div>
 

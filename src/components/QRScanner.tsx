@@ -1,7 +1,6 @@
-
-import React, { useRef, useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { QrCode, Camera as CameraIcon } from 'lucide-react';
+import React, { useRef, useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { QrCode, Camera, X } from "lucide-react";
 
 interface QRScannerProps {
   onQRCodeScanned: (data: string) => void;
@@ -9,113 +8,125 @@ interface QRScannerProps {
 
 const QRScanner: React.FC<QRScannerProps> = ({ onQRCodeScanned }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isScanning, setIsScanning] = useState(false);
-  const [scanError, setScanError] = useState<string | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [isActive, setIsActive] = useState(false);
+  const [error, setError] = useState<string>("");
 
-  // In a real app, we would use a proper QR code scanning library
-  // For this demo, we'll simulate a successful scan after a few seconds
-  const startScanning = async () => {
+  const startCamera = async () => {
     try {
-      setScanError(null);
-      
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
-        audio: false
-      });
-      
+      setError("");
+
+      // Simple, reliable constraints
+      const constraints = {
+        video: {
+          facingMode: "environment"
+        }
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      streamRef.current = stream;
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        setIsScanning(true);
-        
-        // Simulate QR code detection after 3 seconds
+        setIsActive(true);
+
+        // Simulate QR detection after 3 seconds
         setTimeout(() => {
-          // Generate a mock event ID
-          const mockEventId = `event-${Math.floor(Math.random() * 1000)}`;
-          onQRCodeScanned(`https://eventshots.app/event/${mockEventId}`);
-          
-          // Stop scanning
-          stopScanning();
-        }, 3000);
+          const mockId = Date.now().toString();
+          onQRCodeScanned(`https://eventshots.app/event/${mockId}`);
+          stopCamera();
+        }, 7000);
       }
     } catch (err) {
-      console.error("Error accessing camera for QR scanning:", err);
-      setScanError("Could not access camera. Please ensure you've granted camera permissions.");
+      console.error("Camera error:", err);
+      setError("Could not access camera. Please check permissions.");
     }
   };
 
-  const stopScanning = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      const tracks = stream.getTracks();
-      
-      tracks.forEach(track => {
-        track.stop();
-      });
-      
-      videoRef.current.srcObject = null;
-      setIsScanning(false);
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
     }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setIsActive(false);
   };
 
   useEffect(() => {
-    // Clean up on component unmount
     return () => {
-      stopScanning();
+      stopCamera();
     };
   }, []);
 
   return (
-    <div className="flex flex-col items-center w-full">
-      {scanError && (
-        <div className="bg-destructive/10 text-destructive p-4 rounded-md mb-4">
-          {scanError}
-        </div>
-      )}
-      
-      <div className="relative w-full max-w-md aspect-square bg-black rounded-lg overflow-hidden mb-4">
-        {isScanning ? (
-          <>
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-3/4 h-3/4 border-2 border-white/70 rounded-lg animate-pulse">
-                <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-primary rounded-tl-lg"></div>
-                <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-primary rounded-tr-lg"></div>
-                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-primary rounded-bl-lg"></div>
-                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-primary rounded-br-lg"></div>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-muted">
-            <QrCode className="w-16 h-16 text-muted-foreground" />
+    <div className="w-full max-w-md mx-auto">
+      <div
+        className="relative bg-gray-900 rounded-lg overflow-hidden mb-4"
+        style={{ aspectRatio: "1" }}
+      >
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="w-full h-full object-cover"
+          style={{ display: isActive ? "block" : "none" }}
+        />
+
+        {!isActive && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <QrCode size={64} className="text-gray-400" />
           </div>
         )}
+
+        {isActive && (
+          <>
+            {/* Scanning overlay */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div
+                className="border-2 border-white border-opacity-50 rounded-lg"
+                style={{ width: "70%", height: "70%" }}
+              >
+                <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-blue-400"></div>
+                <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-blue-400"></div>
+                <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-blue-400"></div>
+                <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-blue-400"></div>
+              </div>
+            </div>
+
+            {/* Instructions */}
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-3 py-1 rounded text-sm">
+              Align QR code within frame
+            </div>
+          </>
+        )}
       </div>
-      
-      {!isScanning ? (
-        <Button 
-          onClick={startScanning} 
-          className="gap-2"
-          size="lg"
-        >
-          <CameraIcon className="w-4 h-4" />
-          Scan QR Code
-        </Button>
-      ) : (
-        <Button 
-          onClick={stopScanning} 
-          variant="outline"
-          className="gap-2"
-          size="lg"
-        >
-          Cancel Scanning
-        </Button>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
+        </div>
       )}
+
+      <div className="flex gap-2">
+        {!isActive ? (
+          <Button onClick={startCamera} className="flex-1 gap-2">
+            <Camera size={16} />
+            Start Scanner
+          </Button>
+        ) : (
+          <Button
+            onClick={stopCamera}
+            variant="outline"
+            className="flex-1 gap-2"
+          >
+            <X size={16} />
+            Stop Scanner
+          </Button>
+        )}
+      </div>
     </div>
   );
 };

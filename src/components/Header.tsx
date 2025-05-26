@@ -1,10 +1,12 @@
-
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useApp } from "@/contexts/AppContext";
+import { useAccount, useDisconnect } from "@starknet-react/core";
 
 const Header = () => {
   const { currentUser } = useApp();
+  const { address } = useAccount();
+  const { disconnect } = useDisconnect();
 
   return (
     <header className="sticky top-0 z-10 w-full bg-background/80 backdrop-blur-md border-b">
@@ -16,9 +18,18 @@ const Header = () => {
           <h1 className="text-xl font-bold gradient-text">EventShots</h1>
         </Link>
         <nav className="flex items-center gap-2">
-          <Link to="/">
-            <Button variant="ghost">Home</Button>
-          </Link>
+          <Button
+            className="flex flex-row justify-center items-center"
+            variant="ghost"
+            onClick={() => {
+              if (address) {
+                disconnect();
+              }
+            }}
+          >
+            {address ? address?.slice(0, 6) + "..." + address?.slice(-4) : "🦊"}
+          </Button>
+
           <Link to="/create-event">
             <Button variant="ghost">Create Event</Button>
           </Link>

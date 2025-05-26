@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -10,12 +9,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { generateEventQRCode } from "@/utils/qrGenerator";
 import { useApp } from "@/contexts/AppContext";
 import { useToast } from "@/components/ui/use-toast";
+import { useAccount } from "@starknet-react/core";
 
 const CreateEvent = () => {
   const { currentUser, addEvent } = useApp();
+  const { address } = useAccount();
   const navigate = useNavigate();
   const { toast } = useToast();
-  
+
   const [formData, setFormData] = useState({
     name: "",
     date: "",
@@ -23,14 +24,22 @@ const CreateEvent = () => {
     description: ""
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  useEffect(() => {
+    if (!address) {
+      navigate("/");
+    }
+  }, []);
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name || !formData.date || !formData.location) {
       toast({
         title: "Missing information",
@@ -39,10 +48,10 @@ const CreateEvent = () => {
       });
       return;
     }
-    
+
     const eventId = `event-${Date.now()}`;
     const qrCodeData = generateEventQRCode(eventId);
-    
+
     const newEvent = {
       id: eventId,
       name: formData.name,
@@ -52,14 +61,14 @@ const CreateEvent = () => {
       createdBy: currentUser?.id || "",
       qrCode: qrCodeData
     };
-    
+
     addEvent(newEvent);
-    
+
     toast({
       title: "Event created!",
       description: "Your event has been successfully created."
     });
-    
+
     navigate(`/event/${eventId}`);
   };
 
@@ -68,8 +77,10 @@ const CreateEvent = () => {
       <Header />
       <main className="flex-1 container py-8">
         <div className="max-w-2xl mx-auto">
-          <h1 className="text-3xl font-bold mb-6 gradient-text">Create a New Event</h1>
-          
+          <h1 className="text-3xl font-bold mb-6 gradient-text">
+            Create a New Event
+          </h1>
+
           <Card>
             <CardContent className="pt-6">
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -84,7 +95,7 @@ const CreateEvent = () => {
                     required
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="date">Event Date *</Label>
                   <Input
@@ -96,7 +107,7 @@ const CreateEvent = () => {
                     required
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="location">Location *</Label>
                   <Input
@@ -108,7 +119,7 @@ const CreateEvent = () => {
                     required
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="description">Description</Label>
                   <Textarea
@@ -120,7 +131,7 @@ const CreateEvent = () => {
                     rows={4}
                   />
                 </div>
-                
+
                 <Button type="submit" className="w-full gradient-bg">
                   Create Event
                 </Button>
