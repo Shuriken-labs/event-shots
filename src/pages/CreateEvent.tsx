@@ -49,7 +49,10 @@ const CreateEvent = () => {
       return;
     }
 
-    const eventId = `event-${Date.now()}`;
+    const eventId = `event-${Date.now().toString(36)}-${Math.random()
+      .toString(36)
+      .substring(2, 8)}`;
+
     const qrCodeData = generateEventQRCode(eventId);
 
     const newEvent = {
